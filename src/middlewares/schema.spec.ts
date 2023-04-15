@@ -77,12 +77,26 @@ describe('on each field', () => {
       foo: {
         errorMessage: 'bla',
         isInt: true,
+        // @ts-expect-error
         isBla: true,
         escape: true,
-      } as any, // as any because of JS consumers doing the wrong thing
+      },
     })[0];
 
     expect(chainToContext(chain).stack).toHaveLength(2);
+  });
+
+  it('does not add validators called not and withMessage', () => {
+    const chain = checkSchema({
+      foo: {
+        // @ts-expect-error
+        withMessage: 'bla',
+        // @ts-expect-error
+        not: true,
+      },
+    })[0];
+
+    expect(chainToContext(chain).stack).toHaveLength(0);
   });
 
   it('adds with options', async () => {
@@ -176,15 +190,8 @@ describe('on each field', () => {
       },
     });
 
-    expect(chainToContext(schema[0]).optional).toEqual({
-      checkFalsy: false,
-      nullable: false,
-    });
-
-    expect(chainToContext(schema[1]).optional).toEqual({
-      checkFalsy: true,
-      nullable: true,
-    });
+    expect(chainToContext(schema[0]).optional).toBe('undefined');
+    expect(chainToContext(schema[1]).optional).toBe('falsy');
   });
 
   it('can negate validators', async () => {

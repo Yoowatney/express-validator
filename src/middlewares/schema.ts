@@ -9,6 +9,7 @@ import {
 } from '../base';
 import {
   BailOptions,
+  OptionalOptions,
   SanitizersImpl,
   ValidationChain,
   ValidationChainLike,
@@ -17,7 +18,6 @@ import {
 import { ResultWithContext } from '../chain/context-runner';
 import { Sanitizers } from '../chain/sanitizers';
 import { Validators } from '../chain/validators';
-import { Optional } from '../context';
 import { runAllChains } from '../utils';
 import { check } from './check';
 
@@ -64,7 +64,7 @@ type CustomValidatorSchemaOptions = BaseValidatorSchemaOptions & {
 export type ExtensionValidatorSchemaOptions = true | BaseValidatorSchemaOptions;
 
 export type ValidatorsSchema = {
-  [K in keyof Validators<any>]?: ValidatorSchemaOptions<K>;
+  [K in Exclude<keyof Validators<any>, 'not' | 'withMessage'>]?: ValidatorSchemaOptions<K>;
 };
 
 type SanitizerSchemaOptions<K extends keyof Sanitizers<any>> =
@@ -108,7 +108,7 @@ type BaseParamSchema = {
   optional?:
     | true
     | {
-        options?: Partial<Optional>;
+        options?: OptionalOptions;
       };
 };
 
@@ -165,6 +165,8 @@ export function createCheckSchema<C extends ValidationChainLike>(
     entry: [string, any],
   ): entry is [keyof Validators<any>, ValidatorSchemaOptions<any>] {
     return (
+      // #664 - explicitly exclude properties which should be set per validator
+      !['not', 'withMessage'].includes(entry[0]) &&
       (entry[0] in ValidatorsImpl.prototype || (extraValidators as string[]).includes(entry[0])) &&
       entry[1]
     );
